@@ -13,3 +13,5 @@ A complete, standalone desktop shopping cart application built with Java Swing. 
 **Tech Stack:** Java 8+, Swing, AWT
 
 **Use Cases:** Retail POS systems, e-learning Java projects, small business inventory management
+
+<img width="1366" height="768" alt="2026-04-06 23_11_44-Greenshot" src="https://github.com/user-attachments/assets/ea3f4fa4-d5e7-4566-9726-7cddfa358c73" />
