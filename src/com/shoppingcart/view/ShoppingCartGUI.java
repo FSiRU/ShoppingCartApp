@@ -143,10 +143,14 @@ public class ShoppingCartGUI extends JFrame {
         JButton removeButton = createStyledButton("Remove Selected", DANGER_COLOR);
         removeButton.addActionListener(e -> removeSelectedItem());
 
+        JButton clearCartButton = createStyledButton("Clear Cart", DANGER_COLOR);
+        clearCartButton.addActionListener(e -> clearCart());
+
         JButton checkoutButton = createStyledButton("Checkout", PRIMARY_COLOR);
         checkoutButton.addActionListener(e -> checkout());
 
         buttonPanel.add(removeButton);
+        buttonPanel.add(clearCartButton);
         buttonPanel.add(checkoutButton);
 
         bottomPanel.add(totalLabel, BorderLayout.WEST);
@@ -306,6 +310,25 @@ public class ShoppingCartGUI extends JFrame {
         }
     }
 
+    private void clearCart() {
+        if (cart.isEmpty()) {
+            showError("Cart is already empty!");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to remove ALL items from your cart?",
+                "Clear Cart",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            cart.clearCart();
+            updateCartDisplay();
+            showMessage("Cart has been cleared!");
+        }
+    }
+
     private void checkout() {
         if (cart.isEmpty()) {
             showError("Your cart is empty!");
@@ -415,7 +438,7 @@ public class ShoppingCartGUI extends JFrame {
 
     private void showAboutDialog() {
         JOptionPane.showMessageDialog(this,
-                "Shopping Cart Application\nVersion 2.0\n\nA complete GUI shopping cart application\nwith real-time updates and receipt generation.\n\nNew: Save/Load Cart functionality!",
+                "Shopping Cart Application\nVersion 2.0\n\nA complete GUI shopping cart application\nwith real-time updates and receipt generation.\n\nFeatures:\n✓ Save/Load Cart\n✓ Clear Cart\n✓ Professional Receipts",
                 "About",
                 JOptionPane.INFORMATION_MESSAGE);
     }
