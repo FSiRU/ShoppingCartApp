@@ -9,6 +9,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.io.*;
 import java.text.NumberFormat;
 
 public class ShoppingCartGUI extends JFrame {
@@ -50,11 +52,23 @@ public class ShoppingCartGUI extends JFrame {
         JMenuBar menuBar = new JMenuBar();
 
         JMenu fileMenu = new JMenu("File");
+
         JMenuItem newCartItem = new JMenuItem("New Cart");
         newCartItem.addActionListener(e -> newCart());
+
+        JMenuItem saveCartItem = new JMenuItem("Save Cart");
+        saveCartItem.addActionListener(e -> saveCart());
+
+        JMenuItem loadCartItem = new JMenuItem("Load Cart");
+        loadCartItem.addActionListener(e -> loadCart());
+
         JMenuItem exitItem = new JMenuItem("Exit");
         exitItem.addActionListener(e -> System.exit(0));
+
         fileMenu.add(newCartItem);
+        fileMenu.addSeparator();
+        fileMenu.add(saveCartItem);
+        fileMenu.add(loadCartItem);
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
 
@@ -98,11 +112,11 @@ public class ShoppingCartGUI extends JFrame {
         cartTable = new JTable(tableModel);
         cartTable.setRowHeight(30);
         cartTable.setFont(new Font("Arial", Font.PLAIN, 14));
-        cartTable.setForeground(Color.BLACK);  // FIX: Ensure text is black
-        cartTable.setBackground(Color.WHITE);   // FIX: Ensure background is white
+        cartTable.setForeground(Color.BLACK);
+        cartTable.setBackground(Color.WHITE);
         cartTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
         cartTable.getTableHeader().setBackground(SECONDARY_COLOR);
-        cartTable.getTableHeader().setForeground(Color.BLACK);  // FIX: Header text black
+        cartTable.getTableHeader().setForeground(Color.BLACK);
 
         // Set column widths
         cartTable.getColumnModel().getColumn(0).setPreferredWidth(200);
@@ -162,40 +176,39 @@ public class ShoppingCartGUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 0;
         JLabel nameLabel = new JLabel("Item Name:");
-        nameLabel.setForeground(Color.BLACK);  // FIX: Label text black
+        nameLabel.setForeground(Color.BLACK);
         inputPanel.add(nameLabel, gbc);
 
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         JTextField nameField = new JTextField(15);
-        nameField.setForeground(Color.BLACK);   // FIX: Input text black
-        nameField.setBackground(Color.WHITE);   // FIX: Input background white
+        nameField.setForeground(Color.BLACK);
+        nameField.setBackground(Color.WHITE);
         inputPanel.add(nameField, gbc);
 
         // Price
         gbc.gridx = 2;
         gbc.fill = GridBagConstraints.NONE;
         JLabel priceLabel = new JLabel("Price:");
-        priceLabel.setForeground(Color.BLACK);  // FIX: Label text black
+        priceLabel.setForeground(Color.BLACK);
         inputPanel.add(priceLabel, gbc);
 
         gbc.gridx = 3;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         JTextField priceField = new JTextField(10);
-        priceField.setForeground(Color.BLACK);   // FIX: Input text black
-        priceField.setBackground(Color.WHITE);   // FIX: Input background white
+        priceField.setForeground(Color.BLACK);
+        priceField.setBackground(Color.WHITE);
         inputPanel.add(priceField, gbc);
 
         // Quantity
         gbc.gridx = 4;
         JLabel quantityLabel = new JLabel("Quantity:");
-        quantityLabel.setForeground(Color.BLACK);  // FIX: Label text black
+        quantityLabel.setForeground(Color.BLACK);
         inputPanel.add(quantityLabel, gbc);
 
         gbc.gridx = 5;
         JSpinner quantitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 999, 1));
         quantitySpinner.setPreferredSize(new Dimension(70, 25));
-        // Fix spinner text color
         JComponent spinnerEditor = quantitySpinner.getEditor();
         if (spinnerEditor instanceof JSpinner.DefaultEditor) {
             JTextField spinnerTextField = ((JSpinner.DefaultEditor) spinnerEditor).getTextField();
@@ -311,14 +324,98 @@ public class ShoppingCartGUI extends JFrame {
     }
 
     private void newCart() {
-        cart.clearCart();
-        updateCartDisplay();
-        showMessage("Started a new shopping cart!");
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure? This will clear your current cart.",
+                "New Cart",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            cart.clearCart();
+            updateCartDisplay();
+            showMessage("Started a new shopping cart!");
+        }
     }
+
+    // ========== SAVE/LOAD FUNCTIONALITY ==========
+
+    private void saveCart() {
+        if (cart.isEmpty()) {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Your cart is empty. Do you still want to save?",
+                    "Empty Cart",
+                    JOptionPane.YES_NO_OPTION);
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Shopping Cart");
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Cart Files (*.cart)", "cart"));
+
+        // Suggest a default filename with date
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        String defaultName = "cart_" + now.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".cart";
+        fileChooser.setSelectedFile(new File(defaultName));
+
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            String filePath = fileChooser.getSelectedFile().getPath();
+            if (!filePath.endsWith(".cart")) {
+                filePath += ".cart";
+            }
+
+            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath))) {
+                oos.writeObject(cart);
+                showMessage("Cart saved successfully to:\n" + filePath);
+            } catch (IOException e) {
+                showError("Error saving cart: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void loadCart() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Load Shopping Cart");
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Cart Files (*.cart)", "cart"));
+
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+                Cart loadedCart = (Cart) ois.readObject();
+
+                // Confirm before overwriting current cart
+                if (!cart.isEmpty()) {
+                    int confirm = JOptionPane.showConfirmDialog(this,
+                            "Loading will replace your current cart. Continue?",
+                            "Confirm Load",
+                            JOptionPane.YES_NO_OPTION);
+                    if (confirm != JOptionPane.YES_OPTION) {
+                        return;
+                    }
+                }
+
+                cart = loadedCart;
+                updateCartDisplay();
+                showMessage("Cart loaded successfully from:\n" + file.getName() +
+                        "\n\nItems in cart: " + cart.getItemCount());
+
+            } catch (IOException e) {
+                showError("Error loading cart: " + e.getMessage());
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                showError("Corrupted cart file. Could not load.");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // ========== END SAVE/LOAD FUNCTIONALITY ==========
 
     private void showAboutDialog() {
         JOptionPane.showMessageDialog(this,
-                "Shopping Cart Application\nVersion 2.0\n\nA complete GUI shopping cart application\nwith real-time updates and receipt generation.",
+                "Shopping Cart Application\nVersion 2.0\n\nA complete GUI shopping cart application\nwith real-time updates and receipt generation.\n\nNew: Save/Load Cart functionality!",
                 "About",
                 JOptionPane.INFORMATION_MESSAGE);
     }
